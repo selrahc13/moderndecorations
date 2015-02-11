@@ -47,8 +47,6 @@ public class TileEntitySign extends TileEntity {
 	private void setup() {
 		this.name = BlockHelper.typeToNameMapping.get(signType);
 		this.signTexture = BlockHelper.nameToResourceLocation.get(name);
-		//FIXME: Next line is temporary because I made a typo
-		postType = (postType.contains("steel_post")) ? "post_steel" : postType;
 		this.postTexture = BlockHelper.nameToPostResourceLocation.get(postType);
 	}
 	

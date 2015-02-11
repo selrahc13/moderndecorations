@@ -91,6 +91,8 @@ public class BlockSign extends BlockContainer {
 		for (int sY = srMin; sY < srMax; sY++) {
 			base = (TileEntitySign) world.getTileEntity(x, sY, z);
 			if (base != null) {
+				if (sY == srMin) { srMin--; sY=sY-2; continue; } // Found sign at the bottom, search lower
+				if (sY == srMax) srMax++; // We found a sign post, so keep searching higher
 				if (pType == "") {
 			    	direction = world.getBlockMetadata(base.xCoord, base.yCoord, base.zCoord);
 					pType = base.postType;
@@ -98,6 +100,7 @@ public class BlockSign extends BlockContainer {
 					base.setPostType(pType);
 					world.setBlockMetadataWithNotify(base.xCoord, base.yCoord, base.zCoord, direction, 0);
 					world.markBlockForUpdate(x, sY, z);
+					srMax++;
 				}
 			}
 		}
@@ -122,11 +125,10 @@ public class BlockSign extends BlockContainer {
 	@Override
     public boolean onBlockActivated(World theWorld, int posX, int posY, int posZ, EntityPlayer thePlayer, int side, float hitX, float hitY, float hitZ)
     {
-		ModernDecorations.logger.info("onBlockActivated called");
     	TileEntity te = theWorld.getTileEntity(posX, posY, posZ);
+    	String pType = "";
     	if (!theWorld.isRemote && te != null && te instanceof TileEntitySign) {
-    		ModernDecorations.logger.info("block is local - held item is "+thePlayer.getHeldItem().toString());
-    		if(thePlayer.getHeldItem().getUnlocalizedName().substring(5).equals("stick")) {
+    		if(thePlayer.getHeldItem() != null && thePlayer.getHeldItem().getUnlocalizedName().substring(5).equals("stick")) {
 	    		TileEntitySign sign = (TileEntitySign)te;
 	    		int listlen = BlockEnum.EnumPosts.values().length;
 	    		int index = BlockEnum.EnumPosts.valueOf(sign.postType).ordinal();
@@ -139,16 +141,17 @@ public class BlockSign extends BlockContainer {
 	    		
 	    		// Search above and below for signposts and match their texture to the bottom
 	    		TileEntitySign base = null;
-	    		String pType = BlockEnum.EnumPosts.values()[index].name();
+	    		pType = BlockEnum.EnumPosts.values()[index].name();
 	    		boolean found = false;
 	    		int srMin = posY-searchRadius;
 	    		int srMax = posY+searchRadius;
 	    		int direction = 0;
-	    		//FIXME: Search isn't quite working correctly.
-	    		for (int sY = srMin; sY < srMax; sY++) {
+	    		for (int sY = srMin; sY <= srMax; sY++) {
 	    			base = (TileEntitySign) theWorld.getTileEntity(posX, sY, posZ);
 	    			if (base != null) {
     					base.setPostType(pType);
+    					if (sY == srMin) { srMin--; sY=sY-2; continue; } // Found sign at the bottom, search lower
+    					if (sY == srMax) srMax++; // We found a sign post, so keep searching higher
 	    				if (!found) {
 	    					found = true;
 	    					direction = theWorld.getBlockMetadata(base.xCoord, base.yCoord, base.zCoord);	    				
@@ -159,10 +162,15 @@ public class BlockSign extends BlockContainer {
 	    			}
 	    		}
 
+	    	} else {
+	    		// if the player isn't holding the post-changing item
+	    		return false;
 	    	}
-	    	
+	    	// player is holding post-changing item
+    		theWorld.playSoundAtEntity(thePlayer, pType.contains("wood") ? "random.wood_click" : "random.anvil_land", 0.6f, 1.0f);
 	        return true;
     	}
+    	// we only run changer code client-side
     	return false;
     }
 	

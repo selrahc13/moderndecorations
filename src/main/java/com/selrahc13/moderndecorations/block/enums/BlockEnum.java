@@ -1,6 +1,12 @@
 package com.selrahc13.moderndecorations.block.enums;
 
 public class BlockEnum {
+	/*
+	 * This is where we define all of the available signage and post types
+	 * They are automagically created as discrete blocks at startup
+	 * If you need to add more sign or post types, add them at the end
+	 * of the enums or you will most likely have ID reassignment woes
+	*/
 	public static enum EnumSigns { 
 		mdSignPost,
 		md2hrParkingLimit,
@@ -127,7 +133,8 @@ public class BlockEnum {
 		post_green_channel,
 		post_red,
 		post_steel,
-		post_steel_channel
+		post_steel_channel,
+		post_wood
 	}
 	public BlockEnum () {
 	}

@@ -6,6 +6,6 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 public class MDEventHandler {
 	@SubscribeEvent
 	public void onEntityInteractEvent (EntityInteractEvent event) {
-		
+		ModernDecorations.logger.info("onEntityInteractEvent called");
 	}
 }

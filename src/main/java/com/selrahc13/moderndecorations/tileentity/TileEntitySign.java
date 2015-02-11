@@ -7,6 +7,7 @@ import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 
+import com.selrahc13.moderndecorations.block.enums.BlockEnum;
 import com.selrahc13.moderndecorations.common.ModernDecorations;
 import com.selrahc13.moderndecorations.util.BlockHelper;
 
@@ -34,9 +35,19 @@ public class TileEntitySign extends TileEntity {
 		this.setup();
 	}
 	
+	public void setPostType(String type) {
+		this.postType = type;
+		this.postTexture = BlockHelper.nameToPostResourceLocation.get(postType);
+	}
+	
+	public void setPostType(int index) {
+		setPostType(BlockEnum.EnumPosts.values()[index].name());
+	}
+	
 	private void setup() {
 		this.name = BlockHelper.typeToNameMapping.get(signType);
 		this.signTexture = BlockHelper.nameToResourceLocation.get(name);
+		//FIXME: Next line is temporary because I made a typo
 		postType = (postType.contains("steel_post")) ? "post_steel" : postType;
 		this.postTexture = BlockHelper.nameToPostResourceLocation.get(postType);
 	}

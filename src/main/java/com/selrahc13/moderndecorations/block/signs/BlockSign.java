@@ -1,5 +1,15 @@
 package com.selrahc13.moderndecorations.block.signs;
 
+import com.carpentersblocks.api.ICarpentersHammer;
+import com.selrahc13.moderndecorations.block.enums.BlockEnum;
+import com.selrahc13.moderndecorations.common.ModernDecorations;
+import com.selrahc13.moderndecorations.common.Reference;
+import com.selrahc13.moderndecorations.tileentity.TileEntitySign;
+import com.selrahc13.moderndecorations.util.BlockHelper;
+
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
@@ -11,19 +21,12 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
-import com.carpentersblocks.api.ICarpentersHammer;
-import com.selrahc13.moderndecorations.common.ModernDecorations;
-import com.selrahc13.moderndecorations.common.Reference;
-import com.selrahc13.moderndecorations.tileentity.TileEntitySign;
-import com.selrahc13.moderndecorations.util.BlockHelper;
-
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
-public class BlockSign extends BlockContainer implements ICarpentersHammer {
+public class BlockSign extends BlockContainer {
 
 	private String iconName;
 	private int blockType = 0;
+	// How far above and below do we search for other signposts to change the post type
+	private int searchRadius = 3;
 	
 	public BlockSign(int type) {
 		super(Material.iron);
@@ -78,7 +81,27 @@ public class BlockSign extends BlockContainer implements ICarpentersHammer {
 		int l = MathHelper.floor_double((double)(entity.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
 		world.setBlockMetadataWithNotify(x, y, z, l, 2);
 		TileEntitySign tileEntity = (TileEntitySign) world.getTileEntity(x, y, z);
-	
+
+		// Search above and below for signposts and match their texture to the bottom
+		TileEntitySign base = null;
+		String pType = "";
+		int direction = 0;
+		int srMin = y-searchRadius;
+		int srMax = y+searchRadius;
+		for (int sY = srMin; sY < srMax; sY++) {
+			base = (TileEntitySign) world.getTileEntity(x, sY, z);
+			if (base != null) {
+				if (pType == "") {
+			    	direction = world.getBlockMetadata(base.xCoord, base.yCoord, base.zCoord);
+					pType = base.postType;
+				} else {
+					base.setPostType(pType);
+					world.setBlockMetadataWithNotify(base.xCoord, base.yCoord, base.zCoord, direction, 0);
+					world.markBlockForUpdate(x, sY, z);
+				}
+			}
+		}
+		
 		if (tileEntity != null) {
 			if (itemStack.stackTagCompound != null) {
 				if (itemStack.stackTagCompound.hasKey("SignType")) {
@@ -86,28 +109,71 @@ public class BlockSign extends BlockContainer implements ICarpentersHammer {
 				} else {
 					tileEntity.setSignType(0);
 				}
-
+			}
+			if (pType != "") {
+				tileEntity.setPostType(pType);
+				world.setBlockMetadataWithNotify(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, direction, 0);
+				//world.markBlockForUpdate(x, y, z);
 			}
 		}
-	}
-
-	@Override
-	public void onHammerUse(World world, EntityPlayer player) {
 		
 	}
 
 	@Override
-	public boolean canUseHammer(World world, EntityPlayer player) {
-		return true;
-	}
+    public boolean onBlockActivated(World theWorld, int posX, int posY, int posZ, EntityPlayer thePlayer, int side, float hitX, float hitY, float hitZ)
+    {
+		ModernDecorations.logger.info("onBlockActivated called");
+    	TileEntity te = theWorld.getTileEntity(posX, posY, posZ);
+    	if (!theWorld.isRemote && te != null && te instanceof TileEntitySign) {
+    		ModernDecorations.logger.info("block is local - held item is "+thePlayer.getHeldItem().toString());
+    		if(thePlayer.getHeldItem().getUnlocalizedName().substring(5).equals("stick")) {
+	    		TileEntitySign sign = (TileEntitySign)te;
+	    		int listlen = BlockEnum.EnumPosts.values().length;
+	    		int index = BlockEnum.EnumPosts.valueOf(sign.postType).ordinal();
+	    		if (index < listlen - 1) {
+	    			index++;
+	    		} else {
+	    			index=0;
+	    		}
+	    		theWorld.markBlockForUpdate(posX, posY, posZ);
+	    		
+	    		// Search above and below for signposts and match their texture to the bottom
+	    		TileEntitySign base = null;
+	    		String pType = BlockEnum.EnumPosts.values()[index].name();
+	    		boolean found = false;
+	    		int srMin = posY-searchRadius;
+	    		int srMax = posY+searchRadius;
+	    		int direction = 0;
+	    		//FIXME: Search isn't quite working correctly.
+	    		for (int sY = srMin; sY < srMax; sY++) {
+	    			base = (TileEntitySign) theWorld.getTileEntity(posX, sY, posZ);
+	    			if (base != null) {
+    					base.setPostType(pType);
+	    				if (!found) {
+	    					found = true;
+	    					direction = theWorld.getBlockMetadata(base.xCoord, base.yCoord, base.zCoord);	    				
+	    				} else {
+	    					theWorld.setBlockMetadataWithNotify(base.xCoord, base.yCoord, base.zCoord, direction, 0);	    					
+	    				}
+    					theWorld.markBlockForUpdate(posX, sY, posZ);
+	    			}
+	    		}
 
+	    	}
+	    	
+	        return true;
+    	}
+    	return false;
+    }
 	
-    @Override
     /**
      * Called when the block is clicked by a player. Args: x, y, z, entityPlayer
      */
+    @Override
     public void onBlockClicked(World world, int x, int y, int z, EntityPlayer entityPlayer)
     {
+    	ModernDecorations.logger.info("onBlockClicked called");
+    
         if (world.isRemote) {
             return;
         }
